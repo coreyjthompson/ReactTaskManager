@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36401.2
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReactTaskManager.Api", "ReactTaskManager.Api\ReactTaskManager.Api.csproj", "{0BF133C4-791C-4A1A-9507-45067CDBE811}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ReactTaskmanager.Client", "ReactTaskmanager.Client", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "react-task-manager-client", "react-task-manager-client\", "{4BD37F2E-756A-9A40-BF81-16AA86EEC8BA}"
+	ProjectSection(WebsiteProperties) = preProject
+		TargetFrameworkMoniker = ".NETFramework,Version%3Dv4.8"
+		Debug.AspNetCompiler.VirtualPath = "/localhost_60137"
+		Debug.AspNetCompiler.PhysicalPath = "react-task-manager-client\"
+		Debug.AspNetCompiler.TargetPath = "PrecompiledWeb\localhost_60137\"
+		Debug.AspNetCompiler.Updateable = "true"
+		Debug.AspNetCompiler.ForceOverwrite = "true"
+		Debug.AspNetCompiler.FixedNames = "false"
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.VirtualPath = "/localhost_60137"
+		Release.AspNetCompiler.PhysicalPath = "react-task-manager-client\"
+		Release.AspNetCompiler.TargetPath = "PrecompiledWeb\localhost_60137\"
+		Release.AspNetCompiler.Updateable = "true"
+		Release.AspNetCompiler.ForceOverwrite = "true"
+		Release.AspNetCompiler.FixedNames = "false"
+		Release.AspNetCompiler.Debug = "False"
+		VWDPort = "60137"
+		SlnRelativePath = "react-task-manager-client\"
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0BF133C4-791C-4A1A-9507-45067CDBE811}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BF133C4-791C-4A1A-9507-45067CDBE811}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BF133C4-791C-4A1A-9507-45067CDBE811}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BF133C4-791C-4A1A-9507-45067CDBE811}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BD37F2E-756A-9A40-BF81-16AA86EEC8BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BD37F2E-756A-9A40-BF81-16AA86EEC8BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BD37F2E-756A-9A40-BF81-16AA86EEC8BA}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BD37F2E-756A-9A40-BF81-16AA86EEC8BA}.Release|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4BD37F2E-756A-9A40-BF81-16AA86EEC8BA} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3B2C9D16-3206-46F3-91B2-37532BF0CEB4}
+	EndGlobalSection
+EndGlobal
