@@ -362,3 +362,5 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /ReactTaskManager.Api/todo.db
+/ReactTaskManager.Api/todo.db-shm
+/ReactTaskManager.Api/todo.db-wal
