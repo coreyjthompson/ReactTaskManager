@@ -1,10 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
-
-function TaskForm({ existingTask }) {
-    const navigate = useNavigate();
-    const { id } = useParams();
+﻿import axios from 'axios';
+import React, { useEffect, useState } from 'react';
+import { Button, Form, FloatingLabel } from 'react-bootstrap';
+function TaskForm({ id, onSave, onCancel }) {
     const [task, setTask] = useState({
         title: '', description: '', dueDate: '', status: 'To Do'
     });
@@ -28,34 +25,46 @@ function TaskForm({ existingTask }) {
             ? axios.put(`/api/tasks/${id}`, { ...task, id })
             : axios.post('/api/tasks', task);
 
-        request.then(() => navigate('/'))
+        request
+            .then(response => {
+                // Notify parent modal that we just saved:
+                if (onSave) onSave(response.data);
+            })
             .catch(console.error);
     };
 
     return (
-        <div className="container mt-4">
-            <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                    <input name="title" value={task.title} onChange={handleChange} placeholder="Title" className="form-control"  required />
-                </div>
-                <div className="mb-3">
-                    <textarea name="description" value={task.description} onChange={handleChange} placeholder="Description" className="form-control"/>
-                </div>
-                <div className="mb-3">
-                    <input type="date" name="dueDate" value={task.dueDate?.split('T')[0] || ''} onChange={handleChange} className="form-control" />
-                </div>
-                <div className="mb-3">
-                    <select name="status" value={task.status} onChange={handleChange} className="form-select">
-                        <option>To Do</option>
-                        <option>In Progress</option>
-                        <option>Done</option>
-                    </select>
-                </div>
-                <div className="mb-3">
-                    <button type="submit" className="btn btn-primary">{id ? 'Update' : 'Create'}</button>
-                </div>                
-            </form>
-        </div>
+        <Form onSubmit={handleSubmit}>
+            <Form.Group className="mb-3">
+                <FloatingLabel controlId="floatingTaskTitle" label="Title">
+                    <Form.Control name="title" type="text" value={task.title} onChange={handleChange} placeholder="Title" required />
+                </FloatingLabel>
+            </Form.Group>
+            <Form.Group className="mb-3">
+                <FloatingLabel controlId="floatingTaskDescription" label="Add a short description">
+                    <Form.Control as="textarea" name="description" value={task.description} onChange={handleChange} placeholder="Add a short description" style={{ height: '100px' }} />
+                </FloatingLabel>
+            </Form.Group>
+            <Form.Group className="mb-3">
+                <FloatingLabel controlId="floatingTaskDate" label="Due Date">
+                    <Form.Control type="date" name="dueDate" value={task.dueDate?.split('T')[0] || ''} onChange={handleChange} />
+                </FloatingLabel>
+            </Form.Group>
+            <Form.Group className="mb-3">
+                <FloatingLabel controlId="floatingSelect" label="Choose a status">
+                    <Form.Select name="status" value={task.status} onChange={handleChange} className="form-select">
+                    <option>To Do</option>
+                    <option>In Progress</option>
+                    <option>Done</option>
+                    </Form.Select>
+                </FloatingLabel>
+            </Form.Group>
+            <Form.Group className="text-end">
+                <Button variant="secondary" className="me-2" onClick={() => onCancel && onCancel()}>Cancel</Button>
+                <Button type="submit" variant="primary">{id ? 'Update' : 'Create'}</Button>
+            </Form.Group>
+        </Form>
+
     );
 }
 
