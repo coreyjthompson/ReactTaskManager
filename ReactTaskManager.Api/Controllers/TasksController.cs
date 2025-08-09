@@ -7,6 +7,7 @@ using ReactTaskManager.Api.Models;
 
 namespace ReactTaskManager.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class TasksController : ControllerBase
@@ -22,7 +23,6 @@ namespace ReactTaskManager.Api.Controllers
         }
 
         // GET: api/tasks
-        [Authorize]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks(
             [FromQuery] string? status,
@@ -127,7 +127,6 @@ namespace ReactTaskManager.Api.Controllers
         }
 
         // GET: api/tasks/5
-        [Authorize]
         [HttpGet("{id:int}")]
         public async Task<ActionResult<TaskItem>> GetTask(int id)
         {
@@ -137,7 +136,6 @@ namespace ReactTaskManager.Api.Controllers
         }
 
         // POST: api/tasks
-        [Authorize]
         [HttpPost]
         public async Task<ActionResult<TaskItem>> CreateTask([FromBody] TaskItem task)
         {
@@ -163,7 +161,6 @@ namespace ReactTaskManager.Api.Controllers
         }
 
         // PUT: api/tasks/5
-        [Authorize]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateTask(int id, [FromBody] TaskItem updated)
         {
@@ -197,7 +194,6 @@ namespace ReactTaskManager.Api.Controllers
         }
 
         // DELETE: api/tasks/5
-        [Authorize]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteTask(int id)
         {
@@ -210,7 +206,6 @@ namespace ReactTaskManager.Api.Controllers
         }
 
         // PATCH: api/tasks/reorder
-        [Authorize]
         [HttpPatch("reorder")]
         public async Task<IActionResult> Reorder([FromBody] List<ReorderColumnDto> updates)
         {
