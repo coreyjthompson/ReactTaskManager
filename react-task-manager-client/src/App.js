@@ -1,20 +1,30 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import Header from './components/Header';
+import RequireAuth from './components/RequireAuth';
+import { AuthProvider } from './contexts/AuthContext';
+import BoardPage from './pages/BoardPage';
 import HomePage from './pages/HomePage';
-import NewTaskPage from './pages/NewTaskPage';
-import EditTaskPage from './pages/EditTaskPage';
-import './App.css';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 
-function App() {
+export default function App() {
     return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/new" element={<NewTaskPage />} />
-                <Route path="/edit/:id" element={<EditTaskPage />} />
-            </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+            <BrowserRouter>
+                <Header />
+                <Routes>
+                    {/* public */}
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+
+                    {/* protected */}
+                    <Route element={<RequireAuth />}>
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/board" element={<BoardPage />} />
+                    </Route>
+                </Routes>
+            </BrowserRouter>
+        </AuthProvider>
     );
 }
-
-export default App;

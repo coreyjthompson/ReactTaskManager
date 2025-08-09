@@ -1,6 +1,8 @@
-﻿import axios from 'axios';
+﻿// src/components/TaskForm.js
+import api from '../services/api';
 import React, { useEffect, useState } from 'react';
 import { Button, Form, FloatingLabel } from 'react-bootstrap';
+
 function TaskForm({ id, onSave, onCancel }) {
     const [task, setTask] = useState({
         title: '', description: '', dueDate: '', status: 'To Do'
@@ -8,7 +10,8 @@ function TaskForm({ id, onSave, onCancel }) {
 
     useEffect(() => {
         if (id) {
-            axios.get(`/api/tasks/${id}`)
+            // ✅ remove the extra /api
+            api.get(`/tasks/${id}`)
                 .then(res => setTask(res.data))
                 .catch(console.error);
         }
@@ -22,12 +25,12 @@ function TaskForm({ id, onSave, onCancel }) {
     const handleSubmit = e => {
         e.preventDefault();
         const request = id
-            ? axios.put(`/api/tasks/${id}`, { ...task, id })
-            : axios.post('/api/tasks', task);
+            // ✅ remove the extra /api
+            ? api.put(`/tasks/${id}`, { ...task, id })
+            : api.post('/tasks', task);
 
         request
             .then(response => {
-                // Notify parent modal that we just saved:
                 if (onSave) onSave(response.data);
             })
             .catch(console.error);
@@ -37,34 +40,61 @@ function TaskForm({ id, onSave, onCancel }) {
         <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
                 <FloatingLabel controlId="floatingTaskTitle" label="Title">
-                    <Form.Control name="title" type="text" value={task.title} onChange={handleChange} placeholder="Title" required />
+                    <Form.Control
+                        name="title"
+                        type="text"
+                        value={task.title}
+                        onChange={handleChange}
+                        placeholder="Title"
+                        required
+                    />
                 </FloatingLabel>
             </Form.Group>
+
             <Form.Group className="mb-3">
                 <FloatingLabel controlId="floatingTaskDescription" label="Add a short description">
-                    <Form.Control as="textarea" name="description" value={task.description} onChange={handleChange} placeholder="Add a short description" style={{ height: '100px' }} />
+                    <Form.Control
+                        as="textarea"
+                        name="description"
+                        value={task.description}
+                        onChange={handleChange}
+                        placeholder="Add a short description"
+                        style={{ height: '100px' }}
+                    />
                 </FloatingLabel>
             </Form.Group>
+
             <Form.Group className="mb-3">
                 <FloatingLabel controlId="floatingTaskDate" label="Due Date">
-                    <Form.Control type="date" name="dueDate" value={task.dueDate?.split('T')[0] || ''} onChange={handleChange} />
+                    <Form.Control
+                        type="date"
+                        name="dueDate"
+                        value={task.dueDate?.split('T')[0] || ''}
+                        onChange={handleChange}
+                    />
                 </FloatingLabel>
             </Form.Group>
+
             <Form.Group className="mb-3">
                 <FloatingLabel controlId="floatingSelect" label="Choose a status">
-                    <Form.Select name="status" value={task.status} onChange={handleChange} className="form-select">
-                    <option>To Do</option>
-                    <option>In Progress</option>
-                    <option>Done</option>
+                    <Form.Select
+                        name="status"
+                        value={task.status}
+                        onChange={handleChange}
+                        className="form-select"
+                    >
+                        <option>To Do</option>
+                        <option>In Progress</option>
+                        <option>Done</option>
                     </Form.Select>
                 </FloatingLabel>
             </Form.Group>
+
             <Form.Group className="text-end">
                 <Button variant="secondary" className="me-2" onClick={() => onCancel && onCancel()}>Cancel</Button>
                 <Button type="submit" variant="primary">{id ? 'Update' : 'Create'}</Button>
             </Form.Group>
         </Form>
-
     );
 }
 
