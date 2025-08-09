@@ -37,6 +37,10 @@
   }
 }
 
+/* Main Content */
+.content {
+    min-width: 945px;
+}
 
 /* Left nav layout */
 .app-shell {
