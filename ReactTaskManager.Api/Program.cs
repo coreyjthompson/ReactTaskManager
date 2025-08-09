@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -26,8 +27,17 @@ builder.Services
         options.Password.RequireDigit = false;
     })
     .AddEntityFrameworkStores<TodoContext>()
-    .AddSignInManager<SignInManager<AppUser>>();
+    .AddSignInManager<SignInManager<AppUser>>()
+    .AddDefaultTokenProviders();
 
+// Reset token lifetime (optional)
+builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
+{
+    o.TokenLifespan = TimeSpan.FromHours(2);
+});
+
+// Simple dev email sender
+builder.Services.AddSingleton<ReactTaskManager.Api.Services.IEmailSender, ConsoleEmailSender>();
 // JWT auth
 var jwt = builder.Configuration.GetSection("Jwt");
 var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
@@ -59,10 +69,12 @@ builder.Services.AddAuthorization();
 
 // CORS for your React dev server
 builder.Services.AddCors(o =>
-    o.AddDefaultPolicy(p => p
-        .WithOrigins("http://localhost:3000")
+{
+    o.AddPolicy("Frontend", p => p
+        .WithOrigins("http://localhost:3000", "https://localhost:3000")
         .AllowAnyHeader()
-        .AllowAnyMethod()));
+        .AllowAnyMethod());
+});
 
 builder.Services.AddControllers();
 
@@ -85,16 +97,34 @@ builder.Services.AddSwaggerGen(c =>
         { new OpenApiSecurityScheme { Reference = new OpenApiReference
             { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, Array.Empty<string>() }
     });
+
+    var xml = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xml);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+    }
+
+    c.AddServer(new Microsoft.OpenApi.Models.OpenApiServer { Url = "/" });
+
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "React Task Manager API",
+        Version = "v1",
+        Description = "Simple task API with JWT auth, filtering, sorting, and Kanban board reorder.",
+        Contact = new OpenApiContact { Name = "Your Name", Email = "you@example.com" },
+        License = new OpenApiLicense { Name = "MIT" }
+    });
 });
 
 var app = builder.Build();
 
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "v1")); // Remove the options to turn this off in production
 
 app.UseHttpsRedirection();
 
-app.UseCors();
+app.UseCors("Frontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

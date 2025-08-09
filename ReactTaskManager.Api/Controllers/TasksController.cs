@@ -9,6 +9,7 @@ namespace ReactTaskManager.Api.Controllers
 {
     [Authorize]
     [ApiController]
+    [ApiExplorerSettings(GroupName = "v1")]
     [Route("api/[controller]")]
     public class TasksController : ControllerBase
     {
@@ -22,8 +23,20 @@ namespace ReactTaskManager.Api.Controllers
             _context = context;
         }
 
-        // GET: api/tasks
+        /// <summary>
+        /// Returns tasks for the current user with optional filters.
+        /// </summary>
+        /// <param name="status">Status filter (To Do, In Progress, Done)</param>
+        /// <param name="keywords">Keyword search for title/description</param>
+        /// <param name="dueFrom">Due date from</param>
+        /// <param name="dueTo">Due date to</param>
+        /// <param name="sortBy">Sort by field</param>
+        /// <param name="sortDir">Sort direction</param>
+        /// <param name="page">Page number</param>
+        /// <param name="pageSize">Page size</param>
+        /// <returns>List of tasks</returns>
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<TaskItem>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks(
             [FromQuery] string? status,
             [FromQuery] string? keywords,
@@ -126,17 +139,33 @@ namespace ReactTaskManager.Api.Controllers
             return Ok(items);
         }
 
-        // GET: api/tasks/5
+        /// <summary>
+        /// Gets a single task by ID.
+        /// </summary>
+        /// <param name="id">Task ID</param>
+        /// <returns>Task item</returns>
         [HttpGet("{id:int}")]
+        [ProducesResponseType(typeof(TaskItem), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<TaskItem>> GetTask(int id)
         {
             var task = await _context.Tasks.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id);
-            if (task == null) return NotFound();
+            if (task == null)
+            {
+                return NotFound();
+            }
+
             return Ok(task);
         }
 
-        // POST: api/tasks
+        /// <summary>
+        /// Creates a new task.
+        /// </summary>
+        /// <param name="task">Task item</param>
+        /// <returns>Created task</returns>
         [HttpPost]
+        [ProducesResponseType(typeof(TaskItem), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<TaskItem>> CreateTask([FromBody] TaskItem task)
         {
             // Defaults
@@ -160,14 +189,27 @@ namespace ReactTaskManager.Api.Controllers
             return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
         }
 
-        // PUT: api/tasks/5
+        /// <summary>
+        /// Updates an existing task.
+        /// </summary>
+        /// <param name="id">Task ID</param>
+        /// <param name="updated">Updated task item</param>
         [HttpPut("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateTask(int id, [FromBody] TaskItem updated)
         {
-            if (id != updated.Id) return BadRequest();
+            if (id != updated.Id)
+            {
+                return BadRequest();
+            }
 
             var entity = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == id);
-            if (entity == null) return NotFound();
+            if (entity == null)
+            {
+                return NotFound();
+            }
 
             // Update allowed fields
             entity.Title = updated.Title;
@@ -193,35 +235,55 @@ namespace ReactTaskManager.Api.Controllers
             return NoContent();
         }
 
-        // DELETE: api/tasks/5
+        /// <summary>
+        /// Deletes a task by ID.
+        /// </summary>
+        /// <param name="id">Task ID</param>
         [HttpDelete("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteTask(int id)
         {
             var task = await _context.Tasks.FindAsync(id);
-            if (task == null) return NotFound();
+            if (task == null)
+            {
+                return NotFound();
+            }
 
             _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // PATCH: api/tasks/reorder
+        /// <summary>
+        /// Reorders tasks within columns.
+        /// </summary>
+        /// <param name="updates">List of column reorder updates</param>
         [HttpPatch("reorder")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Reorder([FromBody] List<ReorderColumnDto> updates)
         {
             if (updates is null || updates.Count == 0)
+            {
                 return BadRequest("No updates provided.");
+            }
 
             // Validate columns
             foreach (var col in updates)
             {
                 if (string.IsNullOrWhiteSpace(col.Status) || !ValidStatuses.Contains(col.Status))
+                {
                     return BadRequest($"Invalid status '{col.Status}'.");
+                }
             }
 
             // Collect all ids to touch
             var allIds = updates.SelectMany(u => u.OrderedIds).Distinct().ToList();
-            if (allIds.Count == 0) return BadRequest("No task ids provided.");
+            if (allIds.Count == 0)
+            {
+                return BadRequest("No task ids provided.");
+            }
 
             var tasks = await _context.Tasks
                 .Where(t => allIds.Contains(t.Id))
@@ -234,7 +296,10 @@ namespace ReactTaskManager.Api.Controllers
                 {
                     var id = col.OrderedIds[i];
                     var t = tasks.FirstOrDefault(x => x.Id == id);
-                    if (t is null) continue;
+                    if (t is null)
+                    {
+                        continue;
+                    }
 
                     t.Status = col.Status;      // move to that column
                     t.SortOrder = (i + 1) * 10; // spaced ordering

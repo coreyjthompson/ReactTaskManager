@@ -51,7 +51,7 @@ export default function LoginPage() {
                             />
                         </Form.Group>
 
-                        <Form.Group className="mb-4">
+                        <Form.Group className="mb-0">
                             <Form.Label>Password</Form.Label>
                             <Form.Control
                                 type="password"
@@ -62,7 +62,11 @@ export default function LoginPage() {
                                 required
                             />
                         </Form.Group>
-
+                        <div className="mb-4 text-end">
+                            <small>
+                                <Link to="/forgot-password">Forgot your password?</Link>
+                            </small>
+                        </div>
                         <div className="d-grid gap-2">
                             <Button type="submit" variant="primary" disabled={submitting}>
                                 {submitting ? <Spinner size="sm" animation="border" /> : 'Sign in'}
