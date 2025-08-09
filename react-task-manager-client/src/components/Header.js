@@ -4,7 +4,7 @@ import LogoutButton from './LogoutButton';
 
 export default function Header() {
     return (
-        <div className="container d-flex  py-3">
+        <div className="p-3 text-end">
             <LogoutButton />
         </div>
     );

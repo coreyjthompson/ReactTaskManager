@@ -99,16 +99,10 @@ export default function TaskList() {
 
     return (
         <div>
-            <h1>
-                <Row>
-                    <Col>Tasks</Col>
-                    <Col className="text-end">
-                        <Button variant="success" onClick={handleNew} className="mb-3">
-                            <strong>+ New Task</strong>
-                        </Button>
-                    </Col>
-                </Row>
-            </h1>
+            <div className="d-flex align-items-center justify-content-between mb-3">
+                <h1 className="mb-0">Tasks</h1>
+                <Button onClick={handleNew} variant="success"><strong>+ New Task</strong></Button>
+            </div>
 
             {/* Filters */}
             <div className="row g-2 mb-3">
