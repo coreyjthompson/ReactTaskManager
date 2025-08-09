@@ -10,9 +10,17 @@ namespace ReactTaskManager.Api.Data
 
         public DbSet<TaskItem> Tasks { get; set; }
 
-        protected override void OnModelCreating(ModelBuilder builder)
+        protected override void OnModelCreating(ModelBuilder b)
         {
-            base.OnModelCreating(builder); // important for Identity tables
+            base.OnModelCreating(b);
+
+            b.Entity<TaskItem>()
+                .Property(t => t.SortOrder)
+                .HasDefaultValue(0);
+
+            // Helps fast “column + order” queries
+            b.Entity<TaskItem>()
+                .HasIndex(t => new { t.Status, t.SortOrder });
         }
     }
 }
