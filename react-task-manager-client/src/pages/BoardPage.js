@@ -12,13 +12,12 @@ export default function BoardPage() {
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [initialTask, setInitialTask] = useState(null);
 
     const fetchTasks = async () => {
         setLoading(true); setError('');
         try {
-            const res = await api.get('/tasks', {
-                params: { sortBy: 'created', sortDir: 'asc', page: 1, pageSize: 500 }
-            });
+            const res = await api.get('/tasks', { params: { page: 1, pageSize: 500, sortBy: 'created', sortDir: 'asc' } });
             setTasks(res.data);
         } catch (e) {
             console.error(e);
@@ -32,24 +31,29 @@ export default function BoardPage() {
 
     const grouped = useMemo(() => {
         const g = Object.fromEntries(STATUSES.map(s => [s, []]));
-        for (const t of tasks) {
-            const key = STATUSES.includes(t.status) ? t.status : 'To Do';
-            g[key].push(t);
-        }
-        // Sort within each column: due date (soonest first), then title
+        for (const t of tasks) (g[STATUSES.includes(t.status) ? t.status : 'To Do']).push(t);
         for (const s of STATUSES) {
             g[s].sort((a, b) => {
                 const ad = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
                 const bd = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
-                if (ad !== bd) return ad - bd;
-                return a.title.localeCompare(b.title);
+                return ad !== bd ? ad - bd : a.title.localeCompare(b.title);
             });
         }
         return g;
     }, [tasks]);
 
-    const openNew = () => { setEditingId(null); setShowModal(true); };
-    const openEdit = (id) => { setEditingId(id); setShowModal(true); };
+    const openNew = (status = 'To Do') => {
+        setEditingId(null);
+        setInitialTask({ status });  // 👈 prefill the status
+        setShowModal(true);
+    };
+
+    const openEdit = (id) => {
+        setInitialTask(null);        // editing ignores initialTask
+        setEditingId(id);
+        setShowModal(true);
+    };
+
     const onSaved = () => { setShowModal(false); fetchTasks(); };
 
     const badgeVariant = (s) => (s === 'Done' ? 'success' : s === 'In Progress' ? 'warning' : 'secondary');
@@ -58,7 +62,7 @@ export default function BoardPage() {
         <div className="container my-3">
             <div className="d-flex align-items-center justify-content-between mb-3">
                 <h1 className="mb-0">Board</h1>
-                <Button onClick={openNew} variant="success"><strong>+ New Task</strong></Button>
+                <Button onClick={() => openNew('To Do')} variant="success"><strong>+ New Task</strong></Button>
             </div>
 
             {loading && (
@@ -79,30 +83,21 @@ export default function BoardPage() {
                                         <Badge bg={badgeVariant(s)}>{s}</Badge>
                                         <span className="text-muted">({grouped[s]?.length ?? 0})</span>
                                     </div>
-                                    <Button size="sm" variant="outline-secondary" onClick={openNew}>Add</Button>
+                                    <Button size="sm" variant="outline-secondary" onClick={() => openNew(s)}>Add</Button>
                                 </Card.Header>
                                 <Card.Body>
                                     <Stack gap={2}>
                                         {(grouped[s] ?? []).map(t => (
-                                            <Card
-                                                key={t.id}
-                                                className="task-card"
-                                                role="button"
-                                                onClick={() => openEdit(t.id)}
-                                            >
+                                            <Card key={t.id} role="button" onClick={() => openEdit(t.id)}>
                                                 <Card.Body className="p-2">
                                                     <div className="d-flex justify-content-between">
                                                         <strong>{t.title}</strong>
                                                         <small className="text-muted">#{t.id}</small>
                                                     </div>
-                                                    {t.description && (
-                                                        <div className="text-muted small">{t.description}</div>
-                                                    )}
+                                                    {t.description && <div className="text-muted small">{t.description}</div>}
                                                     <div className="d-flex justify-content-between mt-1 small">
                                                         <span>Status: {t.status}</span>
-                                                        <span>
-                                                            Due: {t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'n/a'}
-                                                        </span>
+                                                        <span>Due: {t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'n/a'}</span>
                                                     </div>
                                                 </Card.Body>
                                             </Card>
@@ -120,6 +115,7 @@ export default function BoardPage() {
 
             <TaskModal
                 existingId={editingId}
+                initialTask={initialTask}   // 👈 pass it to the modal/form
                 show={showModal}
                 onClose={() => setShowModal(false)}
                 onSaved={onSaved}
