@@ -36,3 +36,22 @@
     transform: rotate(360deg);
   }
 }
+
+
+/* Left nav layout */
+.app-shell {
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 240px;
+    min-height: 100vh;
+    background: #f8f9fa; /* Bootstrap light gray */
+    border-right: 1px solid #e9ecef;
+}
+
+    .sidebar .nav-link.active {
+        font-weight: 600;
+        background: rgba(0,0,0,0.05);
+        border-radius: .5rem;
+    }

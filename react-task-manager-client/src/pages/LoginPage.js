@@ -34,7 +34,8 @@ export default function LoginPage() {
         <div className="container mt-5" style={{ maxWidth: 420 }}>
             <Card>
                 <Card.Body>
-                    <Card.Title className="mb-3">Sign in</Card.Title>
+                    <h4 className="m-0 mb-3 text-center text-primary">Task Manager</h4>
+                    <Card.Title className="mb-3 text-center">Sign in</Card.Title>
                     {error && <Alert variant="danger">{error}</Alert>}
 
                     <Form onSubmit={handleSubmit}>

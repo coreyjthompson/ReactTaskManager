@@ -40,7 +40,8 @@ export default function RegisterPage() {
         <div className="container mt-5" style={{ maxWidth: 420 }}>
             <Card>
                 <Card.Body>
-                    <Card.Title className="mb-3">Create account</Card.Title>
+                    <h4 className="m-0 mb-3 text-center text-primary">Task Manager</h4>
+                    <Card.Title className="mb-3 text-center">Create account</Card.Title>
                     {error && <Alert variant="danger">{error}</Alert>}
                     {successMsg && <Alert variant="success">{successMsg}</Alert>}
 
