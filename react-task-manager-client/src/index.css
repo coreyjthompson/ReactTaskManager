@@ -11,3 +11,12 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Task Cards */
+.task-card {
+    cursor: grab;
+}
+
+    .task-card:active {
+        cursor: grabbing;
+    }

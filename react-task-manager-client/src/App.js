@@ -1,20 +1,40 @@
+// src/App.js
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import HomePage from './pages/HomePage';
-import NewTaskPage from './pages/NewTaskPage';
-import EditTaskPage from './pages/EditTaskPage';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import './App.css';
+import RequireAuth from './components/RequireAuth';
+import { AuthProvider } from './contexts/AuthContext';
+import AppLayout from './layouts/AppLayout'; // <- the layout with the left nav (Sidebar)
+import BoardPage from './pages/BoardPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
-function App() {
+export default function App() {
     return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/new" element={<NewTaskPage />} />
-                <Route path="/edit/:id" element={<EditTaskPage />} />
-            </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+            <BrowserRouter>
+                <Routes>
+                    {/* Public (no sidebar) */}
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+                    {/* Protected area: auth guard + app layout (left nav) */}
+                    <Route element={<RequireAuth />}>
+                        <Route element={<AppLayout />}>
+                            <Route index element={<HomePage />} />
+                            <Route path="board" element={<BoardPage />} />
+                        </Route>
+                    </Route>
+
+                    {/* Fallback */}
+                    <Route path="*" element={<LoginPage />} />
+                </Routes>
+            </BrowserRouter>
+        </AuthProvider>
     );
 }
-
-export default App;
