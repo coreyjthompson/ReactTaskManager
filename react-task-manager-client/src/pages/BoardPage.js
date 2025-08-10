@@ -1,9 +1,10 @@
-﻿// src/pages/BoardPage.js
+// src/pages/BoardPage.js
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, Col, Row, Spinner, Stack } from 'react-bootstrap';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import api from '../services/api';
 import TaskModal from '../components/TaskModal';
+import { toast } from 'react-toastify';
 
 const STATUSES = ['To Do', 'In Progress', 'Done'];
 
@@ -103,9 +104,10 @@ export default function BoardPage() {
         try {
             await api.patch('/tasks/reorder', payload);
         } catch (err) {
-            console.error('Failed to persist reorder', err);
-            setError('Failed to update order. Reverting.');
-            fetchTasks(); // revert from server truth
+            console.error('Failed to persist status change', err);
+            setError('Failed to update task status. Reverting.');
+            toast.error('Could not update task. Reverted.');
+            fetchTasks();
         }
     }, [columns]);
 

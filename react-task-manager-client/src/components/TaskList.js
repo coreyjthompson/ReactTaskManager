@@ -1,6 +1,6 @@
-﻿// src/components/TaskList.js
 import React, { useEffect, useState } from 'react';
-import { Button, Col, ListGroup, Row } from 'react-bootstrap';
+import { Button, ListGroup } from 'react-bootstrap';
+import { toast } from 'react-toastify';
 import api from '../services/api';
 import TaskModal from './TaskModal';
 
@@ -24,7 +24,7 @@ export default function TaskList() {
     const [editingId, setEditingId] = useState(null);
 
     // filters
-    const [keywords, setKeywords] = useState('');       // was `q`
+    const [keywords, setKeywords] = useState('');     
     const [status, setStatus] = useState('All');
     const [dueFrom, setDueFrom] = useState('');
     const [dueTo, setDueTo] = useState('');
@@ -67,11 +67,11 @@ export default function TaskList() {
             };
             const res = await api.get('/tasks', { params });
             setTasks(res.data);
-            // If you add X-Total-Count on the API, you can use it for real pagination
-            // const total = Number(res.headers['x-total-count'] ?? 0);
+
         } catch (err) {
-            console.error(err);
             setError('Failed to load tasks. Check the console for details.');
+            console.error(err);
+            toast.error('Failed to load tasks');
         } finally {
             setLoading(false);
         }

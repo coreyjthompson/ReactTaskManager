@@ -1,5 +1,10 @@
-﻿using System.Text.RegularExpressions;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReactTaskManager.Api.Data;
@@ -134,6 +139,9 @@ namespace ReactTaskManager.Api.Controllers
             var items = await query.Skip((page - 1) * pageSize)
                                    .Take(pageSize)
                                    .ToListAsync();
+            // Testing - remove later
+            //await Task.Delay(10000);
+
 
             Response.Headers["X-Total-Count"] = total.ToString();
             return Ok(items);

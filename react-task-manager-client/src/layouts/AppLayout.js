@@ -1,4 +1,4 @@
-﻿// src/layouts/AppLayout.js
+// src/layouts/AppLayout.js
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
