@@ -37,5 +37,10 @@
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.13.1" />
 	</ItemGroup>
 
-
+	<ItemGroup>
+		<None Update="**\*.db">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+			<CopyToPublishDirectory>Never</CopyToPublishDirectory>
+		</None>
+	</ItemGroup>
 </Project>
