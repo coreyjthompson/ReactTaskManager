@@ -3,6 +3,9 @@
     "version": "0.1.0",
     "private": true,
     "proxy": "https://localhost:7172",
+    "engines": {
+        "node": "20.x"
+    },
     "dependencies": {
         "@hello-pangea/dnd": "^18.0.1",
         "@hookform/resolvers": "^5.2.1",
