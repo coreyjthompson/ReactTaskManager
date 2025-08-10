@@ -92,14 +92,11 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-// CORS for your React dev server
-builder.Services.AddCors(o =>
-{
-    o.AddPolicy("Frontend", p => p
-        .WithOrigins("http://localhost:3000", "https://localhost:3000")
-        .AllowAnyHeader()
-        .AllowAnyMethod());
-});
+// This allows the React app to make requests to the API
+var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? "")
+    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+builder.Services.AddCors(o => o.AddPolicy("Frontend", p => p.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
 
 builder.Services.AddControllers();
 
