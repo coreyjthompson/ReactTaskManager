@@ -132,6 +132,7 @@ namespace ReactTaskManager.Api.Controllers
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
+            // TODO: log an error and skip the email if the config setting is null or empty;
             // Frontend URL base configured in appsettings, e.g. "http://localhost:3000/reset-password"
             var urlBase = _config["Frontend:ResetPasswordUrl"]?.TrimEnd('/') ?? "http://localhost:3000/reset-password";
             var link = $"{urlBase}?email={WebUtility.UrlEncode(user.Email!)}&token={WebUtility.UrlEncode(token)}";
