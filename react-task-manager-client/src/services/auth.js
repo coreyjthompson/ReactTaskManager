@@ -1,4 +1,4 @@
-﻿// Decode a base64url JWT payload safely
+// Decode a base64url JWT payload safely
 function decodeJwtPayload(token) {
     try {
         const base64 = token.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/');

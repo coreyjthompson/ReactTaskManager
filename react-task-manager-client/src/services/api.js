@@ -1,13 +1,10 @@
-﻿// src/services/api.js
 import axios from 'axios';
 
 const api = axios.create({
-    // If you're using CRA proxy, keep '/api'.
-    // If you call the API directly, use 'https://localhost:7172/api'
-    baseURL: '/api'
+    baseURL: '/api',
 });
 
-// Store / clear the token and default header
+// ----- auth token helpers -----
 export function setAuthToken(token) {
     if (token) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -18,34 +15,79 @@ export function setAuthToken(token) {
     }
 }
 
-// Attach token to every request automatically
-api.interceptors.request.use((config) => {
-    const t = localStorage.getItem('jwt');
-    if (t) {
-        config.headers = config.headers ?? {};
-        config.headers.Authorization = `Bearer ${t}`;
-    }
-    return config;
-});
+// Restore token on page reload
+const saved = localStorage.getItem('jwt');
+if (saved) setAuthToken(saved);
 
-// Handle 401s globally
+// ----- loading bus -----
+let activeRequests = 0;
+const listeners = new Set();
+function notify() { listeners.forEach(fn => fn(activeRequests)); }
+
+/** Subscribe to loading changes (returns unsubscribe) */
+export function onLoadingChange(fn) {
+    listeners.add(fn);
+    fn(activeRequests); // push current value immediately
+    return () => listeners.delete(fn);
+}
+
+function isSkipLoading(headers) {
+    if (!headers) return false;
+    // Axios v1 uses AxiosHeaders which normalizes to lowercase and has get()
+    const get = typeof headers.get === 'function'
+        ? (k) => headers.get(k)
+        : (k) => headers[k] ?? headers[k?.toLowerCase()];
+    const v = get('x-skip-loading') ?? get('X-Skip-Loading');
+    return v === true || v === 'true' || v === 1 || v === '1';
+}
+
+// ----- interceptors (registered at module load) -----
+api.interceptors.request.use(
+    (config) => {
+        // attach token if present (defensive in case defaults were cleared)
+        const t = localStorage.getItem('jwt');
+        if (t) {
+            config.headers = config.headers ?? {};
+            config.headers.Authorization = `Bearer ${t}`;
+        }
+
+        if (!isSkipLoading(config.headers)) {
+            // mark this request so we only decrement if we incremented
+            config.__loadingCounted = true;
+            activeRequests += 1;
+            notify();
+        }
+        return config;
+    },
+    (error) => {
+        if (error?.config?.__loadingCounted) {
+            activeRequests = Math.max(0, activeRequests - 1);
+            notify();
+        }
+        return Promise.reject(error);
+    }
+);
+
 api.interceptors.response.use(
-    (res) => res,
+    (response) => {
+        if (response?.config?.__loadingCounted) {
+            activeRequests = Math.max(0, activeRequests - 1);
+            notify();
+        }
+        return response;
+    },
     (err) => {
+        // global 401 handling
         if (err?.response?.status === 401) {
-            // Token is missing/expired/invalid — log out locally
             setAuthToken(null);
-            // force the user to login page
             window.location.assign('/login');
+        }
+        if (err?.config?.__loadingCounted) {
+            activeRequests = Math.max(0, activeRequests - 1);
+            notify();
         }
         return Promise.reject(err);
     }
 );
-
-// Restore token on page reload
-const saved = localStorage.getItem('jwt');
-if (saved) {
-    setAuthToken(saved);
-}
 
 export default api;

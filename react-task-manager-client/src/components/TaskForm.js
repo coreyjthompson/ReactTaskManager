@@ -1,60 +1,116 @@
-﻿// src/components/TaskForm.js
-import api from '../services/api';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Button, Form, FloatingLabel } from 'react-bootstrap';
+import { useForm } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
+import api from '../services/api';
+import { toast } from 'react-toastify';
 
-function TaskForm({ id, initialTask, onSave, onCancel }) {
-    const [task, setTask] = useState({
-        title: '',
-        description: '',
-        dueDate: '',
-        status: initialTask?.status ?? 'To Do'
+const STATUS_OPTIONS = ['To Do', 'In Progress', 'Done'];
+
+// Yup schema
+const schema = yup.object({
+    title: yup.string().trim().required('Title is required'),
+    description: yup.string().trim().nullable(),
+    status: yup.string().oneOf(STATUS_OPTIONS, 'Invalid status').required(),
+    // keep as string (YYYY-MM-DD). We'll convert on submit.
+    dueDate: yup.string().nullable().transform(v => (v === '' ? null : v)),
+});
+
+export default function TaskForm({ id, onSave, onCancel, initialTask }) {
+    const {
+        register,
+        handleSubmit,
+        reset,
+        formState: { errors, isSubmitting },
+    } = useForm({
+        resolver: yupResolver(schema),
+        defaultValues: {
+            title: '',
+            description: '',
+            status: initialTask?.status || 'To Do',
+            dueDate: null, // 'YYYY-MM-DD' or null
+        },
     });
 
-    // If creating (no id) and initialTask changes, merge it in
+    // Load for edit
     useEffect(() => {
-        if (!id && initialTask) {
-            setTask(prev => ({ ...prev, ...initialTask }));
+        let ignore = false;
+
+        async function load() {
+            if (!id) {
+                // If creating and parent passed an initial status, apply it
+                if (initialTask?.status) {
+                    reset(prev => ({ ...prev, status: initialTask.status }));
+                }
+                return;
+            }
+            try {
+                const res = await api.get(`tasks/${id}`);
+                if (ignore) return;
+
+                const t = res.data;
+                reset({
+                    title: t.title ?? '',
+                    description: t.description ?? '',
+                    status: STATUS_OPTIONS.includes(t.status) ? t.status : 'To Do',
+                    // convert ISO -> 'YYYY-MM-DD'
+                    dueDate: t.dueDate ? new Date(t.dueDate).toISOString().slice(0, 10) : null,
+                });
+            } catch (e) {
+                console.error(e);
+            }
         }
-    }, [id, initialTask]);
 
-    // If editing, load from API
-    useEffect(() => {
-        if (id) {
-            api.get(`/tasks/${id}`)
-                .then(res => setTask(res.data))
-                .catch(console.error);
+        load();
+        return () => { ignore = true; };
+    }, [id, reset, initialTask]);
+
+    // Submit handler
+    const onSubmit = async (data) => {
+        // Convert form date string → ISO (or null)
+        const payload = {
+            title: data.title.trim(),
+            description: data.description?.trim() || null,
+            status: data.status,
+            dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null,
+            id: id ?? undefined,
+        };
+
+        try {
+            const res = id
+                ? await api.put(`tasks/${id}`, payload)
+                : await api.post('tasks', payload);
+
+            toast.success(id ? 'Task updated' : 'Task created');
+            if (onSave) {
+                onSave(res.data ?? payload);
+            }
+
+        } catch (err) {
+            const msg =
+                err?.response?.data?.title ||
+                err?.response?.data?.message ||
+                (typeof err?.response?.data === 'string' ? err.response.data : null) ||
+                err?.message ||
+                'Request failed';
+            toast.error(msg);
         }
-    }, [id]);
-
-    const handleChange = e => {
-        const { name, value } = e.target;
-        setTask(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = e => {
-        e.preventDefault();
-        const request = id
-            ? api.put(`/tasks/${id}`, { ...task, id })
-            : api.post('/tasks', task);
-
-        request
-            .then(res => onSave && onSave(res.data))
-            .catch(console.error);
     };
 
     return (
-        <Form onSubmit={handleSubmit}>
+        <Form noValidate onSubmit={handleSubmit(onSubmit)}>
             <Form.Group className="mb-3">
                 <FloatingLabel controlId="floatingTaskTitle" label="Title">
                     <Form.Control
-                        name="title"
                         type="text"
-                        value={task.title}
-                        onChange={handleChange}
                         placeholder="Title"
-                        required
+                        isInvalid={!!errors.title}
+                        {...register('title')}
                     />
+                    <Form.Control.Feedback type="invalid">
+                        {errors.title?.message}
+                    </Form.Control.Feedback>
                 </FloatingLabel>
             </Form.Group>
 
@@ -62,12 +118,14 @@ function TaskForm({ id, initialTask, onSave, onCancel }) {
                 <FloatingLabel controlId="floatingTaskDescription" label="Add a short description">
                     <Form.Control
                         as="textarea"
-                        name="description"
-                        value={task.description}
-                        onChange={handleChange}
                         placeholder="Add a short description"
                         style={{ height: '100px' }}
+                        isInvalid={!!errors.description}
+                        {...register('description')}
                     />
+                    <Form.Control.Feedback type="invalid">
+                        {errors.description?.message}
+                    </Form.Control.Feedback>
                 </FloatingLabel>
             </Form.Group>
 
@@ -75,29 +133,47 @@ function TaskForm({ id, initialTask, onSave, onCancel }) {
                 <FloatingLabel controlId="floatingTaskDate" label="Due Date">
                     <Form.Control
                         type="date"
-                        name="dueDate"
-                        value={task.dueDate?.split?.('T')[0] || ''}
-                        onChange={handleChange}
+                        placeholder="Due date"
+                        isInvalid={!!errors.dueDate}
+                        {...register('dueDate')}
                     />
+                    <Form.Control.Feedback type="invalid">
+                        {errors.dueDate?.message}
+                    </Form.Control.Feedback>
                 </FloatingLabel>
             </Form.Group>
 
             <Form.Group className="mb-3">
                 <FloatingLabel controlId="floatingSelect" label="Choose a status">
-                    <Form.Select name="status" value={task.status} onChange={handleChange}>
-                        <option>To Do</option>
-                        <option>In Progress</option>
-                        <option>Done</option>
+                    <Form.Select
+                        className="form-select"
+                        isInvalid={!!errors.status}
+                        {...register('status')}
+                    >
+                        {STATUS_OPTIONS.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                        ))}
                     </Form.Select>
+                    <Form.Control.Feedback type="invalid">
+                        {errors.status?.message}
+                    </Form.Control.Feedback>
                 </FloatingLabel>
             </Form.Group>
 
             <Form.Group className="text-end">
-                <Button variant="secondary" className="me-2" onClick={() => onCancel && onCancel()}>Cancel</Button>
-                <Button type="submit" variant="primary">{id ? 'Update' : 'Create'}</Button>
+                <Button
+                    type="button"
+                    variant="secondary"
+                    className="me-2"
+                    onClick={() => onCancel && onCancel()}
+                    disabled={isSubmitting}
+                >
+                    Cancel
+                </Button>
+                <Button type="submit" variant="primary" disabled={isSubmitting}>
+                    {id ? 'Update' : 'Create'}
+                </Button>
             </Form.Group>
         </Form>
     );
 }
-
-export default TaskForm;

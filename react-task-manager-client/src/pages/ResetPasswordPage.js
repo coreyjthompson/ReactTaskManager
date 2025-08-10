@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Alert, Button, Card, Form } from 'react-bootstrap';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
