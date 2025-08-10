@@ -21,8 +21,24 @@ using ReactTaskManager.Api.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // EF Core + SQLite
-builder.Services.AddDbContext<TodoContext>(opt =>
-    opt.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Build a writeable path for Azure App Service Linux
+string home = Environment.GetEnvironmentVariable("HOME") ?? builder.Environment.ContentRootPath; // local dev fallback
+string dataDirectory = Path.Combine(home, "site", "data", "reacttaskmanager");
+
+// Create the data directory
+Directory.CreateDirectory(dataDirectory);
+
+string dbPath = Path.Combine(dataDirectory, "reacttaskmanager.db");
+
+// Allow override from an env var or app setting
+string? connection = builder.Configuration.GetConnectionString("Default");
+if (string.IsNullOrWhiteSpace(connection))
+{
+    connection = $"Data Source={dbPath}";
+}
+
+builder.Services.AddDbContext<TodoContext>(o => o.UseSqlite(connection));
 
 // Identity Core
 builder.Services
@@ -150,6 +166,17 @@ using (var scope = app.Services.CreateScope())
     var pending = db.Database.GetPendingMigrations().ToList();
     logger.LogInformation("Applied: {applied}", string.Join(", ", applied));
     logger.LogInformation("Pending: {pending}", string.Join(", ", pending));
+
+    try
+    {
+        db.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
+        db.Database.ExecuteSqlRaw("PRAGMA busy_timeout=5000;"); // 5s wait if locked
+        db.Database.ExecuteSqlRaw("PRAGMA synchronous=NORMAL;");
+    }
+    catch
+    {
+        //TODO: add logging here
+    }
 
     db.Database.Migrate();
 }
