@@ -1,8 +1,17 @@
+using System;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ReactTaskManager.Api.Data;
@@ -117,12 +126,41 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<TodoContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var cfg = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
+    logger.LogInformation("ConnStr(DefaultConnection) = {conn}", cfg.GetConnectionString("DefaultConnection"));
+
+    // What migrations are compiled into this DLL?
+    var migAsm = db.GetService<IMigrationsAssembly>();
+    logger.LogInformation("MigrationsAssembly = {asm}", migAsm.Assembly.GetName().Name);
+    logger.LogInformation("Compiled migrations = {migs}", string.Join(", ", migAsm.Migrations.Keys));
+    Console.WriteLine($"Compiled migrations = {string.Join(", ", migAsm.Migrations.Keys)}");
+
+    var applied = db.Database.GetAppliedMigrations().ToList();
+    var pending = db.Database.GetPendingMigrations().ToList();
+    logger.LogInformation("Applied: {applied}", string.Join(", ", applied));
+    logger.LogInformation("Pending: {pending}", string.Join(", ", pending));
+
+    db.Database.Migrate();
+}
 app.UseSwagger();
 app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "v1")); // Remove the options to turn this off in production
 
 app.UseHttpsRedirection();
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
+app.MapFallbackToFile("index.html"); // SPA fallback
 
 app.UseCors("Frontend");
 

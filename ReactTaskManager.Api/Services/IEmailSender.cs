@@ -1,4 +1,6 @@
-﻿namespace ReactTaskManager.Api.Services
+﻿using System.Threading.Tasks;
+
+namespace ReactTaskManager.Api.Services
 {
     public interface IEmailSender
     {

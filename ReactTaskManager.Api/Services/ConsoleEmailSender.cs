@@ -1,4 +1,7 @@
-﻿namespace ReactTaskManager.Api.Services
+﻿using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace ReactTaskManager.Api.Services
 {
     public class ConsoleEmailSender : IEmailSender
     {
