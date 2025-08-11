@@ -23,10 +23,12 @@ jobs:
         with:
           dotnet-version: '8.x'
 
-      - name: Build with dotnet
+      - name: Build with dotnet (API only)
+        working-directory: ReactTaskManager.Api
         run: dotnet build --configuration Release
 
-      - name: dotnet publish
+      - name: dotnet publish (API only)
+        working-directory: ReactTaskManager.Api
         run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
 
       - name: Upload artifact for deployment job
@@ -62,4 +64,3 @@ jobs:
           app-name: 'rtm-dev-api'
           slot-name: 'Production'
           package: .
-          
