@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// Build base URL from env, fallback to local, trim trailing slash
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000').replace(/\/+$/, '');
+
 const api = axios.create({
-    baseURL: '/api',
+    baseURL: `${API_BASE}/api`,
 });
 
 // ----- auth token helpers -----
