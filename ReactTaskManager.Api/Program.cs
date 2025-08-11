@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -20,27 +21,30 @@ using ReactTaskManager.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// EF Core + SQLite
+string? configured = builder.Configuration.GetConnectionString("Default");
+string connStr;
 
-// Build a writeable path for Azure App Service Linux
-string home = Environment.GetEnvironmentVariable("HOME") ?? builder.Environment.ContentRootPath; // local dev fallback
-string dataDirectory = Path.Combine(home, "site", "data", "reacttaskmanager");
-
-// Create the data directory
-Directory.CreateDirectory(dataDirectory);
-
-string dbPath = Path.Combine(dataDirectory, "reacttaskmanager.db");
-
-// Allow override from an env var or app setting
-string? connection = builder.Configuration.GetConnectionString("Default");
-if (string.IsNullOrWhiteSpace(connection))
+if (!string.IsNullOrWhiteSpace(configured))
 {
-    connection = $"Data Source={dbPath}";
+    // Local dev or explicit Azure setting
+    connStr = configured;
+}
+else
+{
+    // Fallback for Azure App Service
+    string home = Environment.GetEnvironmentVariable("HOME")
+                  ?? Environment.GetEnvironmentVariable("USERPROFILE")
+                  ?? builder.Environment.ContentRootPath;
+
+    string dataDir = Path.Combine(home, "site", "data", "reacttaskmanager");
+    Directory.CreateDirectory(dataDir); // only create when we use it
+
+    string dbPath = Path.Combine(dataDir, "todo.db");
+    connStr = $"Data Source={dbPath}";
 }
 
-builder.Services.AddDbContext<TodoContext>(o => o.UseSqlite(connection));
+builder.Services.AddDbContext<TodoContext>(o => o.UseSqlite(connStr));
 
-// Identity Core
 builder.Services
     .AddIdentityCore<AppUser>(options =>
     {
@@ -55,24 +59,19 @@ builder.Services
     .AddSignInManager<SignInManager<AppUser>>()
     .AddDefaultTokenProviders();
 
-// Reset token lifetime (optional)
 builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
 {
     o.TokenLifespan = TimeSpan.FromHours(2);
 });
 
-// Simple dev email sender
-builder.Services.AddSingleton<ReactTaskManager.Api.Services.IEmailSender, ConsoleEmailSender>();
-// JWT auth
-var jwt = builder.Configuration.GetSection("Jwt");
-var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
-var keyBytesValidator = Encoding.UTF8.GetBytes(jwt["Key"]!);
-
-Console.WriteLine("VALIDATOR key fp: " +
-  Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(keyBytesValidator)).Substring(0, 16));
-
-
+builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
 builder.Services.AddScoped<TokenService>();
+
+var jwt = builder.Configuration.GetSection("Jwt");
+var signingKey = new SymmetricSecurityKey(
+    Encoding.UTF8.GetBytes(jwt["Key"] ?? throw new InvalidOperationException("Jwt:Key not configured"))
+);
+
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -92,15 +91,18 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-// This allows the React app to make requests to the API
 var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? "")
     .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-builder.Services.AddCors(o => o.AddPolicy("Frontend", p => p.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+builder.Services.AddCors(o =>
+    o.AddPolicy("Frontend", p =>
+        p.WithOrigins(allowedOrigins)
+         .AllowAnyHeader()
+         .AllowAnyMethod()
+    )
+);
 
 builder.Services.AddControllers();
-
-// Swagger with Bearer support
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -123,20 +125,7 @@ builder.Services.AddSwaggerGen(c =>
     var xml = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xml);
     if (File.Exists(xmlPath))
-    {
         c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
-    }
-
-    c.AddServer(new Microsoft.OpenApi.Models.OpenApiServer { Url = "/" });
-
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "React Task Manager API",
-        Version = "v1",
-        Description = "Simple task API with JWT auth, filtering, sorting, and Kanban board reorder.",
-        Contact = new OpenApiContact { Name = "Your Name", Email = "you@example.com" },
-        License = new OpenApiLicense { Name = "MIT" }
-    });
 });
 
 builder.Logging.ClearProviders();
@@ -149,48 +138,52 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<TodoContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    var cfg = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-
-    logger.LogInformation("ConnStr(DefaultConnection) = {conn}", cfg.GetConnectionString("DefaultConnection"));
-
-    // What migrations are compiled into this DLL?
     var migAsm = db.GetService<IMigrationsAssembly>();
+
+    logger.LogInformation("ConnStr(Default) = {conn}", connStr);
     logger.LogInformation("MigrationsAssembly = {asm}", migAsm.Assembly.GetName().Name);
     logger.LogInformation("Compiled migrations = {migs}", string.Join(", ", migAsm.Migrations.Keys));
-    Console.WriteLine($"Compiled migrations = {string.Join(", ", migAsm.Migrations.Keys)}");
 
     var applied = db.Database.GetAppliedMigrations().ToList();
     var pending = db.Database.GetPendingMigrations().ToList();
     logger.LogInformation("Applied: {applied}", string.Join(", ", applied));
     logger.LogInformation("Pending: {pending}", string.Join(", ", pending));
 
+    db.Database.Migrate();
     try
     {
         db.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
-        db.Database.ExecuteSqlRaw("PRAGMA busy_timeout=5000;"); // 5s wait if locked
+        db.Database.ExecuteSqlRaw("PRAGMA busy_timeout=5000;");
         db.Database.ExecuteSqlRaw("PRAGMA synchronous=NORMAL;");
     }
-    catch
+    catch (Exception ex)
     {
-        //TODO: add logging here
+        logger.LogWarning(ex, "Failed to apply SQLite PRAGMAs.");
     }
-
-    db.Database.Migrate();
 }
+
 app.UseSwagger();
-app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "v1")); // Remove the options to turn this off in production
-
-app.UseHttpsRedirection();
-
-app.UseDefaultFiles();
-app.UseStaticFiles();
-app.MapFallbackToFile("index.html"); // SPA fallback
+app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "v1"));
 
 app.UseCors("Frontend");
+
+app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Helpful for CORS preflight on any path
+app.MapMethods("{*path}", new[] { "OPTIONS" }, () => Results.Ok()).AllowAnonymous();
+
+app.MapGet("/health", (TodoContext db, IConfiguration cfg) =>
+{
+    var ds = db.Database.GetDbConnection().DataSource ?? "(unknown)";
+    var origins = cfg["Cors:AllowedOrigins"] ?? "";
+
+    return Results.Ok(new { DataSource = ds, AllowedOrigins = origins });
+
+}).AllowAnonymous();
 
 app.Run();
