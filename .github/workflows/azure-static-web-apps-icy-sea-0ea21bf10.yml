@@ -1,5 +1,9 @@
 name: Azure Static Web Apps CI/CD
 
+env:
+  REACT_APP_API_BASE_URL: https://rtm-dev-api.azurewebsites.net
+  CI: false
+
 on:
   push:
     branches:
@@ -44,3 +48,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ICY_SEA_0EA21BF10 }}
           action: "close"
+
